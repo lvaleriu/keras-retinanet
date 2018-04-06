@@ -500,6 +500,8 @@ def main(args=None):
     return training_model.fit_generator(
         generator=train_generator,
         steps_per_epoch=args.steps,
+        validation_data=validation_generator,
+        validation_steps=validation_generator.size(),
         epochs=args.epochs,
         verbose=1,
         callbacks=callbacks,
