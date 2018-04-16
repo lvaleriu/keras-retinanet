@@ -15,6 +15,7 @@ class LabelBoxGenerator(Generator):
     def __init__(
             self,
             subset, main_dir, json_filename,
+            addit_review_filename='labelbox_addit.json',
             add_negative_examples=True,
             coco_data_dir='/media/work/image/coco',
             **kwargs
@@ -45,6 +46,20 @@ class LabelBoxGenerator(Generator):
                 print ('accepted: {} annotations. total ignored: {} annotations'.format(len(annotations), len(ignored)))
 
                 self.annotations = annotations
+
+        addit_review_json = os.path.join(main_dir, addit_review_filename)
+        if os.path.exists(addit_review_json):
+            with open(addit_review_json, 'r') as f:
+                addit_annotations = json.loads(f.read())
+                for img_ann_ad in addit_annotations:
+                    boxes = img_ann_ad['boxes']
+                    if len(boxes) == 0:
+                        continue
+
+                    img_ann = [a for a in self.annotations if a['path'] == img_ann_ad['path']]
+                    if len(img_ann) > 0:
+                        img_ann = img_ann[0]
+                        img_ann['boxes'] = img_ann['boxes'] + boxes
 
         train_annotations, test_annotations = train_test_split(self.annotations, test_size=0.25, random_state=0)
         self.annotations = train_annotations if subset == 'train' else test_annotations
