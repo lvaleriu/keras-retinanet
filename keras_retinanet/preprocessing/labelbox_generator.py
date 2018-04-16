@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 import numpy as np
 from PIL import Image
@@ -13,15 +14,21 @@ from ..utils.image import read_image_bgr
 class LabelBoxGenerator(Generator):
     def __init__(
             self,
-            subset,
+            subset, main_dir, json_filename,
+            add_negative_examples=True,
+            coco_data_dir='/media/work/image/coco',
             **kwargs
     ):
+        self.set_name = subset
+        self.add_negative_examples = add_negative_examples
+
         annotation_cache_json = 'labelbox_cache.json'
-        # json_path = 'flickr-images-grab/labelbox_v2.json'
-        json_path = '../../examples/flickr-images-grab/labelbox_v2.json'
 
         if not os.path.exists(annotation_cache_json):
-            self.annotations = LabelBoxGenerator.__load_data__(json_path)
+            # load raw data from labelbox exported json and save
+            # generated annotations to a cache file.
+            # we filter incoherent boxes: x1 = x2 or y1 = y2
+            self.annotations = LabelBoxGenerator.__load_data__(main_dir, json_filename)
             json.dump(self.annotations, open(annotation_cache_json, "w"))
         else:
             with open(annotation_cache_json, 'r') as f:
@@ -35,12 +42,33 @@ class LabelBoxGenerator(Generator):
                     else:
                         ignored.append(a)
 
-                print ('total ignored: {} accepted: {} annotations'.format(len(ignored), len(annotations)))
+                print ('accepted: {} annotations. total ignored: {} annotations'.format(len(annotations), len(ignored)))
 
                 self.annotations = annotations
 
         train_annotations, test_annotations = train_test_split(self.annotations, test_size=0.25, random_state=0)
         self.annotations = train_annotations if subset == 'train' else test_annotations
+
+        if add_negative_examples:
+            from ..preprocessing.coco import CocoGenerator
+
+            # add negative examples
+            train_generator = CocoGenerator(
+                coco_data_dir,
+                '{}2017'.format(subset),
+                batch_size=1
+            )
+
+            print('Adding {} negative examples'.format(len(self.annotations)))
+
+            permutation = range(0, train_generator.size())
+            random.shuffle(permutation)
+            permutation = permutation[:len(self.annotations)]
+
+            for image_index in permutation:
+                image_info = train_generator.coco.loadImgs(train_generator.image_ids[image_index])[0]
+                img_path = os.path.join(train_generator.data_dir, 'images', train_generator.set_name, image_info['file_name'])
+                self.annotations.append({'path': img_path})
 
         print ('{}: {} accepted annotations'.format(subset, len(self.annotations)))
 
@@ -101,7 +129,8 @@ class LabelBoxGenerator(Generator):
         return img_boxes
 
     @staticmethod
-    def __load_data__(json_path):
+    def __load_data__(main_dir, json_filename):
+        json_path = os.path.join(main_dir, json_filename)
         all_boxes = []
 
         with open(json_path, mode='r') as f:
@@ -112,7 +141,7 @@ class LabelBoxGenerator(Generator):
                 dlabel = d[u'Label']
 
                 img_path = url.replace('http://cryptorecorder.ddns.net/', '')
-                img_path = os.path.join('/media/work/image/construction', img_path)
+                img_path = os.path.join(main_dir, img_path)
 
                 # load image
                 image = read_image_bgr(img_path)
@@ -186,6 +215,10 @@ class LabelBoxGenerator(Generator):
 
     def load_annotations(self, image_index):
         annotations = self.annotations[image_index]
+
+        if self.add_negative_examples and 'boxes' not in annotations:
+            return np.zeros((0, 5))
+
         boxes = np.zeros((len(annotations['boxes']), 5))
 
         for idx, ann in enumerate(annotations['boxes']):
