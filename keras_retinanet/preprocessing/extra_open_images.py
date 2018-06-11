@@ -53,7 +53,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                            73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier',
                            79: 'toothbrush'}
 
-        labels_to_names = {0: 'person', 1: 'car'}
+        # labels_to_names = {0: 'person', 1: 'car'}
 
         kwargs['labels_filter'] = None
 
@@ -113,7 +113,6 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                     print ('Auto mapping labels: {} => {}'.format(oid_label, coco_label))
 
         if len(coco_labels_to_id) > 40:
-            pass
             oid_sub_labels_to_coco_id['houseplant']     = coco_labels_to_id['potted plant']
             oid_sub_labels_to_coco_id['mobile phone']   = coco_labels_to_id['cell phone']
             oid_sub_labels_to_coco_id['ball']           = coco_labels_to_id['sports ball']
@@ -137,7 +136,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
 
             filtered_boxes = []
             for ann in img_ann['boxes']:
-                cls_id      = ann['cls_id']
+                cls_id     = ann['cls_id']
                 oid_label  = self.id_to_labels[cls_id]
                 oid_label  = str.lower(oid_label)
 
