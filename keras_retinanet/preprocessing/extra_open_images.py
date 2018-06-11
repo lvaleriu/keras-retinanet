@@ -56,6 +56,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
         # labels_to_names = {0: 'person', 1: 'car'}
 
         kwargs['labels_filter'] = None
+        self.use_all_classes = True
 
         super(CocoOpenImagesGenerator, self).__init__(**kwargs)
 
@@ -112,7 +113,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                 if oid_label != coco_label:
                     print ('Auto mapping labels: {} => {}'.format(oid_label, coco_label))
 
-        if len(coco_labels_to_id) > 40:
+        if self.use_all_classes:
             oid_sub_labels_to_coco_id['houseplant']     = coco_labels_to_id['potted plant']
             oid_sub_labels_to_coco_id['mobile phone']   = coco_labels_to_id['cell phone']
             oid_sub_labels_to_coco_id['ball']           = coco_labels_to_id['sports ball']
@@ -260,11 +261,11 @@ if __name__ == '__main__':
         generator = ExtraOpenImagesGenerator(
             main_dir='/media/work2/OpenImages',
             subset='train',
-            version='2017_11',
+            version='2018_04',
             labels_filter=['Helmet'],
             fixed_labels=True,
             uniform_label_distribution=False,
-            annotation_cache_dir='/media/work2/OpenImages/2017_11',
+            annotation_cache_dir='/media/work2/OpenImages/2018_04',
             transform_generator=transform_generator
         )
     else:
