@@ -53,7 +53,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                            73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier',
                            79: 'toothbrush'}
 
-        # labels_to_names = {0: 'person', 1: 'car'}
+        labels_to_names = {0: 'person', 1: 'car'}
 
         kwargs['labels_filter'] = None
         self.use_all_classes = True
@@ -137,7 +137,7 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
 
             filtered_boxes = []
             for ann in img_ann['boxes']:
-                cls_id     = ann['cls_id']
+                cls_id      = ann['cls_id']
                 oid_label  = self.id_to_labels[cls_id]
                 oid_label  = str.lower(oid_label)
 
@@ -262,7 +262,7 @@ if __name__ == '__main__':
             main_dir='/media/work2/OpenImages',
             subset='train',
             version='2018_04',
-            labels_filter=['Helmet'],
+            labels_filter=['Nail'],
             fixed_labels=True,
             uniform_label_distribution=False,
             annotation_cache_dir='/media/work2/OpenImages/2018_04',
