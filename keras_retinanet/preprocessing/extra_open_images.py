@@ -177,7 +177,7 @@ class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
             batch_size=1
         )
 
-        print('Adding {} negative examples'.format(len(self.annotations)))
+        print('Adding {} negative image examples'.format(len(self.annotations)))
 
         permutation = range(0, negative_generator.size())
         random.shuffle(permutation)
@@ -194,6 +194,7 @@ class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
             self.negative_img_ids_to_img_paths[img_id] = img_path
 
         self.id_to_image_id = dict([(i, k) for i, k in enumerate(self.annotations)])
+        self.stats()
 
     def image_path(self, image_index):
         img_id = self.id_to_image_id[image_index]
