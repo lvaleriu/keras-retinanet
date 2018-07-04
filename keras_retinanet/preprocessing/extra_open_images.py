@@ -53,8 +53,6 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                            73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier',
                            79: 'toothbrush'}
 
-        labels_to_names = {0: 'person', 1: 'car'}
-
         kwargs['labels_filter'] = None
         self.use_all_classes = True
 
@@ -253,28 +251,28 @@ class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
 
 
 if __name__ == '__main__':
-    test_cocoid = True
+    test_cocoid = False
 
     if not test_cocoid:
         from keras_retinanet.utils.transform import random_transform_generator
 
         transform_generator = random_transform_generator(flip_x_chance=0.5)
-        generator = ExtraOpenImagesGenerator(
-            main_dir='/media/work2/OpenImages',
+        generator = StatsOpenImageGenerator(
+            main_dir='/media/work2/image/openimages',
             subset='train',
-            version='2018_04',
-            labels_filter=['Nail'],
-            fixed_labels=True,
-            uniform_label_distribution=False,
-            annotation_cache_dir='/media/work2/OpenImages/2018_04',
+            version='challenge2018',
+            # labels_filter=['Nail'],
+            # fixed_labels=True,
+            # uniform_label_distribution=False,
+            annotation_cache_dir='/media/work2/image/openimages/challenge2018',
             transform_generator=transform_generator
         )
     else:
         generator = CocoOpenImagesGenerator(
-            main_dir='/media/work2/OpenImages',
+            main_dir='/media/work2/image/openimages',
             subset='train',
             version='v4',
-            annotation_cache_dir='/media/work2/OpenImages/2018_04',
+            annotation_cache_dir='/media/work2/openimages/2018_04',
         )
-    generator.load_image(608173)
+        generator.load_image(608173)
     generator.stats()
