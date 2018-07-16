@@ -2,13 +2,14 @@ import os
 import random
 import sys
 import uuid
+from tqdm import tqdm
 
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
     __package__ = "keras_retinanet.bin"
 
-from keras_retinanet.preprocessing.open_images import OpenImagesGenerator
+from keras_retinanet.preprocessing.open_images import OpenImagesGenerator, find_hierarchy_parent, load_hierarchy_children
 
 
 class StatsOpenImageGenerator(OpenImagesGenerator):
@@ -150,6 +151,92 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
         return coco_id_to_labels, filtered_annotations
 
 
+class NegativeOpenImagesGenerator(OpenImagesGenerator):
+    def __init__(self,  **kwargs):
+        super(NegativeOpenImagesGenerator, self).__init__(**kwargs)
+
+    def __filter_data(self, id_to_labels, cls_index, labels_filter=None, parent_label=None):
+        excluded_children_id_to_label = {}
+
+        if parent_label is None:
+            # there is/are no other sublabel(s) other than the labels itself
+
+            for label in labels_filter:
+                for i, l in id_to_labels:
+                    if l == label:
+                        excluded_children_id_to_label[i] = label
+                        break
+        else:
+            parent_cls = None
+            for i, l in id_to_labels.iteritems():
+                if l == parent_label:
+                    parent_id = i
+                    for c, index in cls_index.iteritems():
+                        if index == parent_id:
+                            parent_cls = c
+                    break
+
+            if parent_cls is None:
+                raise Exception('Couldnt find label {}'.format(parent_label))
+
+            parent_tree = find_hierarchy_parent(self.hierarchy, parent_cls)
+
+            if parent_tree is None:
+                raise Exception('Couldnt find parent {} in the semantic hierarchical tree'.format(parent_label))
+
+            children = load_hierarchy_children(parent_tree)
+
+            for cls in children:
+                index = cls_index[cls]
+                label = id_to_labels[index]
+                excluded_children_id_to_label[index] = label
+
+        filtered_annotations = {}
+        for k in self.annotations:
+            img_ann = self.annotations[k]
+            all_different = True
+
+            for ann in img_ann['boxes']:
+                cls_id = ann['cls_id']
+                if cls_id in excluded_children_id_to_label:
+                    all_different = False
+                    break
+
+            if all_different:
+                filtered_annotations[k] = {'w': img_ann['w'], 'h': img_ann['h'], 'boxes': []}
+
+        return [], filtered_annotations
+
+
+class ExtraNegativeOpenImagesGenerator(OpenImagesGenerator):
+    def name_to_label(self, name):
+        pass
+
+    def __init__(self,  **kwargs):
+        super(ExtraNegativeOpenImagesGenerator, self).__init__(**kwargs)
+
+        subset = kwargs['subset']
+
+        print ('{}: {} images with annotations'.format(subset, len(self.annotations)))
+
+        print('Adding {} negative image examples'.format(len(self.annotations)))
+
+        negative_generator = NegativeOpenImagesGenerator(**kwargs)
+
+        permutation = range(0, negative_generator.size())
+        random.shuffle(permutation)
+        permutation = permutation[:len(self.annotations)]
+
+        for image_index in permutation:
+            image_annotations = negative_generator.annotations[negative_generator.id_to_image_id[image_index]]
+
+            img_id = negative_generator.id_to_image_id[image_index]
+
+            self.annotations[img_id] = {'w': image_annotations['w'], 'h': image_annotations['h'], 'boxes': []}
+
+        self.id_to_image_id = dict([(i, k) for i, k in enumerate(self.annotations)])
+
+
 class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
     def __init__(self,
                  coco_data_dir='/media/work/image/coco',
@@ -251,7 +338,7 @@ class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
 
 
 if __name__ == '__main__':
-    test_cocoid = False
+    test_cocoid = True
 
     if not test_cocoid:
         from keras_retinanet.utils.transform import random_transform_generator
@@ -262,17 +349,28 @@ if __name__ == '__main__':
             subset='train',
             version='challenge2018',
             # labels_filter=['Nail'],
-            # fixed_labels=True,
+            # parent_label=True,
             # uniform_label_distribution=False,
             annotation_cache_dir='/media/work2/image/openimages/challenge2018',
             transform_generator=transform_generator
         )
     else:
-        generator = CocoOpenImagesGenerator(
+        generator = ExtraNegativeOpenImagesGenerator(
             main_dir='/media/work2/image/openimages',
             subset='train',
-            version='v4',
-            annotation_cache_dir='/media/work2/openimages/2018_04',
+            version='challenge2018',
+            parent_label='Dessert',
+            annotation_cache_dir='/media/work2/image/openimages/challenge2018',
         )
-        generator.load_image(608173)
-    generator.stats()
+
+
+    def benchmark_gen():
+        while True:
+            a = generator.next()
+            if a is None:
+                break
+            yield a
+
+
+    for _ in tqdm(benchmark_gen()):
+        pass
