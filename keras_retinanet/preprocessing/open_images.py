@@ -215,6 +215,7 @@ class OpenImagesGenerator(Generator):
             self, main_dir, subset, version='v4',
             labels_filter=None, annotation_cache_dir='.',
             parent_label=None,
+            annotations=None,
             **kwargs
     ):
         if version == 'challenge2018':
@@ -239,12 +240,15 @@ class OpenImagesGenerator(Generator):
         self.hierarchy          = load_hierarchy(metadata_dir, version=version)
         id_to_labels, cls_index = get_labels(metadata_dir, version=version)
 
-        if os.path.exists(annotation_cache_json):
-            with open(annotation_cache_json, 'r') as f:
-                self.annotations = json.loads(f.read())
+        if annotations is None:
+            if os.path.exists(annotation_cache_json):
+                with open(annotation_cache_json, 'r') as f:
+                    self.annotations = json.loads(f.read())
+            else:
+                self.annotations = generate_images_annotations_json(main_dir, metadata_dir, subset, cls_index, version=version)
+                json.dump(self.annotations, open(annotation_cache_json, "w"))
         else:
-            self.annotations = generate_images_annotations_json(main_dir, metadata_dir, subset, cls_index, version=version)
-            json.dump(self.annotations, open(annotation_cache_json, "w"))
+            self.annotations = annotations
 
         if labels_filter is not None or parent_label is not None:
             self.id_to_labels, self.annotations = self.__filter_data(id_to_labels, cls_index, labels_filter, parent_label)
