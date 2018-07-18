@@ -9,7 +9,8 @@ if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
     __package__ = "keras_retinanet.bin"
 
-from keras_retinanet.preprocessing.open_images import OpenImagesGenerator, find_hierarchy_parent, load_hierarchy_children
+from keras_retinanet.preprocessing.open_images import OpenImagesGenerator, find_hierarchy_parent, \
+    load_hierarchy_children
 
 
 class StatsOpenImageGenerator(OpenImagesGenerator):
@@ -113,19 +114,19 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
                     print ('Auto mapping labels: {} => {}'.format(oid_label, coco_label))
 
         if self.use_all_classes:
-            oid_sub_labels_to_coco_id['houseplant']     = coco_labels_to_id['potted plant']
-            oid_sub_labels_to_coco_id['mobile phone']   = coco_labels_to_id['cell phone']
-            oid_sub_labels_to_coco_id['ball']           = coco_labels_to_id['sports ball']
-            oid_sub_labels_to_coco_id['table']          = coco_labels_to_id['dining table']
+            oid_sub_labels_to_coco_id['houseplant'] = coco_labels_to_id['potted plant']
+            oid_sub_labels_to_coco_id['mobile phone'] = coco_labels_to_id['cell phone']
+            oid_sub_labels_to_coco_id['ball'] = coco_labels_to_id['sports ball']
+            oid_sub_labels_to_coco_id['table'] = coco_labels_to_id['dining table']
             oid_sub_labels_to_coco_id['kitchen & dining room table'] = coco_labels_to_id['dining table']
-            oid_sub_labels_to_coco_id['television']     = coco_labels_to_id['tv']
-            oid_sub_labels_to_coco_id['hair dryer']     = coco_labels_to_id['hair drier']
-            oid_sub_labels_to_coco_id['ski']            = coco_labels_to_id['skis']
-            oid_sub_labels_to_coco_id['flying disc']    = coco_labels_to_id['frisbee']
+            oid_sub_labels_to_coco_id['television'] = coco_labels_to_id['tv']
+            oid_sub_labels_to_coco_id['hair dryer'] = coco_labels_to_id['hair drier']
+            oid_sub_labels_to_coco_id['ski'] = coco_labels_to_id['skis']
+            oid_sub_labels_to_coco_id['flying disc'] = coco_labels_to_id['frisbee']
             oid_sub_labels_to_coco_id['microwave oven'] = coco_labels_to_id['microwave']
-            oid_sub_labels_to_coco_id['doughnut']       = coco_labels_to_id['donut']
-            oid_sub_labels_to_coco_id['jet ski']        = coco_labels_to_id['skis']
-            oid_sub_labels_to_coco_id['cattle']         = coco_labels_to_id['cow']
+            oid_sub_labels_to_coco_id['doughnut'] = coco_labels_to_id['donut']
+            oid_sub_labels_to_coco_id['jet ski'] = coco_labels_to_id['skis']
+            oid_sub_labels_to_coco_id['cattle'] = coco_labels_to_id['cow']
         else:
             pass
             # oid_sub_labels_to_coco_id['hair dryer']     = coco_labels_to_id['hair drier']
@@ -136,9 +137,9 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
 
             filtered_boxes = []
             for ann in img_ann['boxes']:
-                cls_id      = ann['cls_id']
-                oid_label  = self.id_to_labels[cls_id]
-                oid_label  = str.lower(oid_label)
+                cls_id = ann['cls_id']
+                oid_label = self.id_to_labels[cls_id]
+                oid_label = str.lower(oid_label)
 
                 if oid_label in oid_sub_labels_to_coco_id:
                     ann['cls_id'] = oid_sub_labels_to_coco_id[oid_label]
@@ -152,7 +153,10 @@ class CocoOpenImagesGenerator(StatsOpenImageGenerator):
 
 
 class NegativeOpenImagesGenerator(OpenImagesGenerator):
-    def __init__(self,  **kwargs):
+    def name_to_label(self, name):
+        pass
+
+    def __init__(self, **kwargs):
         super(NegativeOpenImagesGenerator, self).__init__(**kwargs)
 
     def __filter_data(self, id_to_labels, cls_index, labels_filter=None, parent_label=None):
@@ -212,7 +216,7 @@ class ExtraNegativeOpenImagesGenerator(OpenImagesGenerator):
     def name_to_label(self, name):
         pass
 
-    def __init__(self,  **kwargs):
+    def __init__(self, **kwargs):
         super(ExtraNegativeOpenImagesGenerator, self).__init__(**kwargs)
 
         subset = kwargs['subset']
@@ -338,6 +342,44 @@ class ExtraOpenImagesGenerator(StatsOpenImageGenerator):
 
 
 if __name__ == '__main__':
+    import cProfile, pstats
+    import sys
+    import json
+
+
+    def profile(func):
+        def inner(*args, **kwargs):
+            pr = cProfile.Profile()
+            pr.enable()
+            ret = func(*args, **kwargs)
+            pr.disable()
+            ps = pstats.Stats(pr, stream=sys.stdout).sort_stats('cumulative')
+            ps.print_stats()
+            # print(s.getvalue())
+            return ret
+
+        return inner
+
+
+    @profile
+    def work():
+        annotation_cache_json = os.path.join('/media/work2/image/openimages/challenge2018', 'train.json')
+
+        with open(annotation_cache_json, 'r') as f:
+            annotations = json.loads(f.read())
+
+        ExtraNegativeOpenImagesGenerator(
+            main_dir='/media/work2/image/openimages',
+            subset='train',
+            version='challenge2018',
+            parent_label='Toy',
+            annotations=annotations,
+            annotation_cache_dir='/media/work2/image/openimages/challenge2018',
+        )
+
+    # work()
+    # exit()
+
     test_cocoid = True
 
     if not test_cocoid:
@@ -348,9 +390,6 @@ if __name__ == '__main__':
             main_dir='/media/work2/image/openimages',
             subset='train',
             version='challenge2018',
-            # labels_filter=['Nail'],
-            # parent_label=True,
-            # uniform_label_distribution=False,
             annotation_cache_dir='/media/work2/image/openimages/challenge2018',
             transform_generator=transform_generator
         )
@@ -359,7 +398,7 @@ if __name__ == '__main__':
             main_dir='/media/work2/image/openimages',
             subset='train',
             version='challenge2018',
-            parent_label='Dessert',
+            parent_label='Toy',
             annotation_cache_dir='/media/work2/image/openimages/challenge2018',
         )
 
