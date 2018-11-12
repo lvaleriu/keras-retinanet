@@ -96,6 +96,9 @@ def mobilenet_retinanet(num_classes, backbone='mobilenet224_1.0', inputs=None, m
         inputs = keras.layers.Input((None, None, 3))
 
     backbone = mobilenet.MobileNet(input_tensor=inputs, alpha=alpha, include_top=False, pooling=None, weights=None)
+    bn_layers = [l for l in backbone.layers if type(l) == keras.layers.normalization.BatchNormalization]
+    for bn in bn_layers:
+        bn.trainable = False
 
     # create the full model
     layer_names = ['conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu']
