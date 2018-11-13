@@ -17,12 +17,53 @@ limitations under the License.
 from __future__ import division
 import numpy as np
 import cv2
+import pyvips
 from PIL import Image
 
 from .transform import change_transform_origin
 
 
+
+def read_single_image(path):
+    use_pyvips = True
+    try:
+        if not use_pyvips:
+            img = np.array(Image.open(path))
+        else:
+            # Much faster in case you have pyvips installed (uncomment import pyvips in top of file)
+            img = pyvips.Image.new_from_file(path, access='sequential')
+            img = np.ndarray(buffer=img.write_to_memory(),
+                         dtype=np.uint8,
+                         shape=[img.height, img.width, img.bands])
+    except:
+        try:
+            img = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+        except:
+            print('Fail')
+            return None
+
+    if len(img.shape) == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+    if img.shape[2] == 2:
+        img = img[:, :, :1]
+
+    if img.shape[2] == 1:
+        img = np.concatenate((img, img, img), axis=2)
+
+    if img.shape[2] > 3:
+        img = img[:, :, :3]
+
+    return img
+
+
 def read_image_bgr(path):
+    img2 = read_single_image(path)
+    img2 = img2[:, :, ::-1]
+    return img2
+
+
+def read_image_bgr_old(path):
     """ Read an image in BGR format.
 
     Args
